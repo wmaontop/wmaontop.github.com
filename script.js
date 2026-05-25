@@ -1,23 +1,21 @@
+let users = JSON.parse(localStorage.getItem("snap_users")) || {};
+let chats = JSON.parse(localStorage.getItem("snap_chats")) || {};
+let stories = JSON.parse(localStorage.getItem("snap_stories")) || [];
+
+let currentUser = localStorage.getItem("snap_currentUser") || "";
+let currentFriend = "";
+let currentSnap = "";
+
 let video = document.getElementById("video");
 let canvas = document.getElementById("canvas");
-let currentSnap = "";
-let currentFriend = "";
+
 let facingMode = "user";
 
-let friends = JSON.parse(localStorage.getItem("friends")) || [
-  "Alex",
-  "Mia",
-  "Jay",
-  "Sam"
-];
-
-let chats = JSON.parse(localStorage.getItem("chats")) || {};
-let stories = JSON.parse(localStorage.getItem("stories")) || [];
-
-function saveAll() {
-  localStorage.setItem("friends", JSON.stringify(friends));
-  localStorage.setItem("chats", JSON.stringify(chats));
-  localStorage.setItem("stories", JSON.stringify(stories));
+function save() {
+  localStorage.setItem("snap_users", JSON.stringify(users));
+  localStorage.setItem("snap_chats", JSON.stringify(chats));
+  localStorage.setItem("snap_stories", JSON.stringify(stories));
+  localStorage.setItem("snap_currentUser", currentUser);
 }
 
 function openPage(id) {
@@ -27,30 +25,88 @@ function openPage(id) {
 
   document.getElementById(id).classList.add("active");
 
+  if (id === "cameraPage") {
+    document.getElementById("topUser").innerText = "@" + currentUser;
+    startCamera();
+  }
+
   if (id === "chatsPage") loadChats();
   if (id === "storiesPage") loadStories();
 }
 
+function register() {
+  let username = document.getElementById("authUser").value.trim().toLowerCase();
+  let password = document.getElementById("authPass").value;
+
+  if (!username || !password) {
+    return msg("Enter username and password.");
+  }
+
+  if (users[username]) {
+    return msg("Username already exists.");
+  }
+
+  users[username] = {
+    password: password,
+    friends: []
+  };
+
+  currentUser = username;
+  save();
+  openPage("cameraPage");
+}
+
+function login() {
+  let username = document.getElementById("authUser").value.trim().toLowerCase();
+  let password = document.getElementById("authPass").value;
+
+  if (!users[username]) {
+    return msg("Account not found.");
+  }
+
+  if (users[username].password !== password) {
+    return msg("Wrong password.");
+  }
+
+  currentUser = username;
+  save();
+  openPage("cameraPage");
+}
+
+function logout() {
+  currentUser = "";
+  localStorage.removeItem("snap_currentUser");
+  openPage("authPage");
+}
+
+function msg(text) {
+  document.getElementById("authMsg").innerText = text;
+}
+
 async function startCamera() {
   try {
+    if (video.srcObject) {
+      video.srcObject.getTracks().forEach(track => track.stop());
+    }
+
     let stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: facingMode },
+      video: {
+        facingMode: facingMode
+      },
       audio: false
     });
 
     video.srcObject = stream;
-  } catch (err) {
-    alert("Camera blocked. Allow camera permission and use HTTPS.");
+
+    // This fixes the front camera mirror issue.
+    video.style.transform = "scaleX(1)";
+  } catch (error) {
+    alert("Allow camera permission and use HTTPS.");
   }
 }
 
 function switchCamera() {
   facingMode = facingMode === "user" ? "environment" : "user";
-
-  if (video.srcObject) {
-    video.srcObject.getTracks().forEach(track => track.stop());
-  }
-
   startCamera();
 }
 
@@ -59,87 +115,70 @@ function takeSnap() {
   canvas.height = video.videoHeight;
 
   let ctx = canvas.getContext("2d");
-  ctx.drawImage(video, 0, 0);
+
+  // No mirroring here, so saved snaps match real left/right.
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
   currentSnap = canvas.toDataURL("image/png");
   document.getElementById("previewImg").src = currentSnap;
 
-  loadFriendSendList();
+  loadSendList();
   openPage("previewPage");
 }
 
-function loadFriendSendList() {
-  let box = document.getElementById("friendSendList");
-  box.innerHTML = "";
+function addFriend() {
+  let friend = document.getElementById("friendInput").value.trim().toLowerCase();
 
-  friends.forEach(friend => {
-    box.innerHTML += `
-      <div class="friendCard">
-        <span class="bitmoji">🙂</span>
-        <b>${friend}</b>
-        <button onclick="sendSnap('${friend}')">Send Snap</button>
-      </div>
-    `;
-  });
+  if (!friend) return;
+
+  if (!users[friend]) {
+    return alert("That username does not exist.");
+  }
+
+  if (friend === currentUser) {
+    return alert("You cannot add yourself.");
+  }
+
+  if (users[currentUser].friends.includes(friend)) {
+    return alert("Already friends.");
+  }
+
+  users[currentUser].friends.push(friend);
+
+  if (!users[friend].friends.includes(currentUser)) {
+    users[friend].friends.push(currentUser);
+  }
+
+  document.getElementById("friendInput").value = "";
+  save();
+  loadChats();
 }
 
-function sendSnap(friend) {
-  let caption = document.getElementById("captionInput").value;
-
-  if (!chats[friend]) chats[friend] = [];
-
-  chats[friend].push({
-    type: "snap",
-    from: "me",
-    image: currentSnap,
-    caption: caption,
-    time: new Date().toLocaleTimeString()
-  });
-
-  saveAll();
-
-  alert("Snap sent to " + friend);
-  document.getElementById("captionInput").value = "";
-  openPage("chatsPage");
-}
-
-function postStory() {
-  let caption = document.getElementById("captionInput").value;
-
-  stories.unshift({
-    image: currentSnap,
-    caption: caption,
-    time: new Date().toLocaleString()
-  });
-
-  saveAll();
-
-  alert("Posted to story");
-  document.getElementById("captionInput").value = "";
-  openPage("storiesPage");
+function chatKey(a, b) {
+  return [a, b].sort().join("_");
 }
 
 function loadChats() {
-  let list = document.getElementById("chatList");
-  list.innerHTML = "";
+  let box = document.getElementById("chatList");
+  box.innerHTML = "";
+
+  let friends = users[currentUser].friends;
+
+  if (friends.length === 0) {
+    box.innerHTML = "<p style='text-align:center;'>Add a registered username to start chatting.</p>";
+    return;
+  }
 
   friends.forEach(friend => {
-    let last = chats[friend]?.length
-      ? chats[friend][chats[friend].length - 1]
-      : null;
+    let key = chatKey(currentUser, friend);
+    let last = chats[key]?.length ? chats[key][chats[key].length - 1] : null;
+    let preview = last ? (last.type === "snap" ? "📸 Snap" : last.text) : "Tap to chat";
 
-    let preview = "Tap to chat";
-
-    if (last) {
-      preview = last.type === "snap" ? "📸 Sent a snap" : last.text;
-    }
-
-    list.innerHTML += `
-      <div class="chatCard" onclick="openChat('${friend}')">
+    box.innerHTML += `
+      <div class="card" onclick="openChat('${friend}')">
         <div>
-          <span class="bitmoji">🙂</span>
-          <b>${friend}</b>
-          <div class="small">${preview}</div>
+          <b>@${friend}</b>
+          <p>${preview}</p>
         </div>
         <span>›</span>
       </div>
@@ -149,7 +188,7 @@ function loadChats() {
 
 function openChat(friend) {
   currentFriend = friend;
-  document.getElementById("chatTitle").innerText = friend;
+  document.getElementById("chatTitle").innerText = "@" + friend;
   loadMessages();
   openPage("chatRoomPage");
 }
@@ -158,22 +197,27 @@ function loadMessages() {
   let box = document.getElementById("messages");
   box.innerHTML = "";
 
-  let messages = chats[currentFriend] || [];
+  let key = chatKey(currentUser, currentFriend);
+  let list = chats[key] || [];
 
-  messages.forEach(msg => {
-    if (msg.type === "snap") {
+  list.forEach(message => {
+    let side = message.from === currentUser ? "me" : "them";
+
+    if (message.type === "snap") {
       box.innerHTML += `
-        <div class="message ${msg.from}">
-          <img src="${msg.image}">
-          <p>${msg.caption || ""}</p>
-          <small>${msg.time}</small>
+        <div class="message ${side}">
+          <b>@${message.from}</b>
+          <img src="${message.image}">
+          <p>${message.caption || ""}</p>
+          <small>${message.time}</small>
         </div>
       `;
     } else {
       box.innerHTML += `
-        <div class="message ${msg.from}">
-          <p>${msg.text}</p>
-          <small>${msg.time}</small>
+        <div class="message ${side}">
+          <b>@${message.from}</b>
+          <p>${message.text}</p>
+          <small>${message.time}</small>
         </div>
       `;
     }
@@ -188,88 +232,106 @@ function sendMessage() {
 
   if (!text) return;
 
-  if (!chats[currentFriend]) chats[currentFriend] = [];
+  let key = chatKey(currentUser, currentFriend);
 
-  chats[currentFriend].push({
+  if (!chats[key]) {
+    chats[key] = [];
+  }
+
+  chats[key].push({
     type: "chat",
-    from: "me",
+    from: currentUser,
     text: text,
     time: new Date().toLocaleTimeString()
   });
 
   input.value = "";
-
-  setTimeout(() => {
-    chats[currentFriend].push({
-      type: "chat",
-      from: "them",
-      text: fakeReply(),
-      time: new Date().toLocaleTimeString()
-    });
-
-    saveAll();
-    loadMessages();
-  }, 700);
-
-  saveAll();
+  save();
   loadMessages();
 }
 
-function fakeReply() {
-  let replies = [
-    "lol 😂",
-    "send another snap",
-    "that’s crazy",
-    "wyd?",
-    "fire 🔥",
-    "bet",
-    "no way"
-  ];
+function loadSendList() {
+  let box = document.getElementById("sendList");
+  box.innerHTML = "";
 
-  return replies[Math.floor(Math.random() * replies.length)];
+  let friends = users[currentUser].friends;
+
+  if (friends.length === 0) {
+    box.innerHTML = "<p style='text-align:center;'>No friends yet.</p>";
+    return;
+  }
+
+  friends.forEach(friend => {
+    box.innerHTML += `
+      <div class="card">
+        <b>@${friend}</b>
+        <button onclick="sendSnap('${friend}')">Send</button>
+      </div>
+    `;
+  });
 }
 
-function addFriend() {
-  let name = document.getElementById("friendName").value.trim();
+function sendSnap(friend) {
+  let caption = document.getElementById("captionInput").value;
+  let key = chatKey(currentUser, friend);
 
-  if (!name) return;
-  if (friends.includes(name)) return alert("Friend already added");
+  if (!chats[key]) {
+    chats[key] = [];
+  }
 
-  friends.push(name);
-  chats[name] = [];
+  chats[key].push({
+    type: "snap",
+    from: currentUser,
+    image: currentSnap,
+    caption: caption,
+    time: new Date().toLocaleTimeString()
+  });
 
-  document.getElementById("friendName").value = "";
+  save();
+  document.getElementById("captionInput").value = "";
+  openPage("chatsPage");
+}
 
-  saveAll();
-  loadChats();
+function postStory() {
+  let caption = document.getElementById("captionInput").value;
+
+  stories.unshift({
+    user: currentUser,
+    image: currentSnap,
+    caption: caption,
+    time: new Date().toLocaleString()
+  });
+
+  save();
+  document.getElementById("captionInput").value = "";
+  openPage("storiesPage");
 }
 
 function loadStories() {
   let box = document.getElementById("stories");
   box.innerHTML = "";
 
-  if (stories.length === 0) {
-    box.innerHTML = "<p style='text-align:center;'>No stories yet</p>";
+  let visibleStories = stories.filter(story =>
+    story.user === currentUser || users[currentUser].friends.includes(story.user)
+  );
+
+  if (visibleStories.length === 0) {
+    box.innerHTML = "<p style='text-align:center;'>No stories yet.</p>";
     return;
   }
 
-  stories.forEach((story, index) => {
+  visibleStories.forEach(story => {
     box.innerHTML += `
-      <div class="storyCard">
+      <div class="story">
+        <b>@${story.user}</b>
         <img src="${story.image}">
-        <h3>${story.caption || "My Story"}</h3>
-        <p class="small">${story.time}</p>
-        <button onclick="deleteStory(${index})">Delete</button>
+        <h3>${story.caption || ""}</h3>
+        <small>${story.time}</small>
       </div>
     `;
   });
 }
 
-function deleteStory(index) {
-  stories.splice(index, 1);
-  saveAll();
-  loadStories();
+if (currentUser && users[currentUser]) {
+  openPage("cameraPage");
 }
-
-startCamera();
-loadChats();
