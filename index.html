@@ -2,30 +2,45 @@
 <html>
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>SnapClone Demo</title>
+  <title>SnapWeb</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <div class="app">
-  <div id="cameraPage" class="page active">
-    <header>👻 SnapClone</header>
+
+  <div id="authPage" class="page active auth">
+    <h1>👻 SnapWeb</h1>
+    <input id="authUser" placeholder="Username">
+    <input id="authPass" placeholder="Password" type="password">
+    <button onclick="register()">Register</button>
+    <button onclick="login()">Login</button>
+    <p id="authMsg"></p>
+  </div>
+
+  <div id="cameraPage" class="page">
+    <header>
+      <button onclick="openPage('chatsPage')">💬</button>
+      <span id="topUser"></span>
+      <button onclick="logout()">Logout</button>
+    </header>
+
     <video id="video" autoplay playsinline></video>
     <canvas id="canvas"></canvas>
 
     <div class="cameraControls">
-      <button onclick="openPage('chatsPage')">💬</button>
-      <button class="snapBtn" onclick="takeSnap()">📸</button>
       <button onclick="switchCamera()">🔄</button>
+      <button class="snapBtn" onclick="takeSnap()">📸</button>
+      <button onclick="openPage('storiesPage')">📖</button>
     </div>
   </div>
 
   <div id="previewPage" class="page">
     <img id="previewImg">
-    <input id="captionInput" placeholder="Add caption...">
-    <h3>Send to:</h3>
-    <div id="friendSendList"></div>
-    <button onclick="postStory()">Post to Story</button>
+    <input id="captionInput" placeholder="Caption...">
+    <h3>Send to friend:</h3>
+    <div id="sendList"></div>
+    <button onclick="postStory()">Post Story</button>
     <button onclick="openPage('cameraPage')">Back</button>
   </div>
 
@@ -36,24 +51,23 @@
       <button onclick="openPage('storiesPage')">📖</button>
     </header>
 
-    <div id="chatList"></div>
+    <input id="friendInput" placeholder="Add friend username">
+    <button onclick="addFriend()">Add Friend</button>
 
-    <div class="addFriend">
-      <input id="friendName" placeholder="Add friend name">
-      <button onclick="addFriend()">Add</button>
-    </div>
+    <div id="chatList"></div>
   </div>
 
   <div id="chatRoomPage" class="page">
     <header>
       <button onclick="openPage('chatsPage')">←</button>
       <span id="chatTitle"></span>
+      <span></span>
     </header>
 
     <div id="messages"></div>
 
     <div class="messageBox">
-      <input id="messageInput" placeholder="Send chat...">
+      <input id="messageInput" placeholder="Message...">
       <button onclick="sendMessage()">Send</button>
     </div>
   </div>
@@ -62,9 +76,11 @@
     <header>
       <button onclick="openPage('chatsPage')">←</button>
       Stories
+      <span></span>
     </header>
     <div id="stories"></div>
   </div>
+
 </div>
 
 <script src="script.js"></script>
