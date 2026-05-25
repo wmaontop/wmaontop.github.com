@@ -1,0 +1,163 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #111;
+}
+
+.app {
+  max-width: 430px;
+  height: 100vh;
+  margin: auto;
+  background: #fff;
+  overflow: hidden;
+  position: relative;
+}
+
+.page {
+  display: none;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.page.active {
+  display: block;
+}
+
+header {
+  background: #fffc00;
+  padding: 15px;
+  font-size: 24px;
+  font-weight: bold;
+  text-align: center;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+header button {
+  background: white;
+  color: black;
+}
+
+video {
+  width: 100%;
+  height: calc(100vh - 140px);
+  object-fit: cover;
+  background: black;
+}
+
+canvas {
+  display: none;
+}
+
+.cameraControls {
+  height: 80px;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  background: #111;
+}
+
+button {
+  border: none;
+  border-radius: 25px;
+  padding: 12px 18px;
+  background: #111;
+  color: white;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.snapBtn {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background: white;
+  color: black;
+  font-size: 28px;
+  border: 5px solid #ddd;
+}
+
+#previewImg {
+  width: 100%;
+  max-height: 550px;
+  object-fit: cover;
+  background: black;
+}
+
+input {
+  width: 90%;
+  padding: 13px;
+  margin: 10px auto;
+  display: block;
+  border-radius: 20px;
+  border: 1px solid #ccc;
+  font-size: 16px;
+}
+
+.friendCard, .chatCard, .storyCard, .message {
+  margin: 10px;
+  padding: 15px;
+  border-radius: 18px;
+  background: #eee;
+}
+
+.chatCard {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.bitmoji {
+  font-size: 35px;
+}
+
+.message.me {
+  background: #fffc00;
+  margin-left: 60px;
+}
+
+.message.them {
+  background: #ddd;
+  margin-right: 60px;
+}
+
+.message img {
+  width: 100%;
+  border-radius: 15px;
+}
+
+.messageBox {
+  position: sticky;
+  bottom: 0;
+  background: white;
+  padding: 10px;
+  display: flex;
+}
+
+.messageBox input {
+  width: 75%;
+  margin: 0;
+}
+
+.messageBox button {
+  width: 25%;
+}
+
+.addFriend {
+  padding-bottom: 30px;
+}
+
+.storyCard img {
+  width: 100%;
+  border-radius: 18px;
+}
+
+.small {
+  color: #666;
+  font-size: 13px;
+}
