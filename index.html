@@ -2,120 +2,71 @@
 <html>
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>SnapWeb</title>
-  <style>
-    body { margin:0; font-family:Arial; background:#fffc00; text-align:center; }
-    .app { max-width:420px; margin:auto; min-height:100vh; background:white; }
-    header { background:#fffc00; padding:18px; font-size:28px; font-weight:bold; }
-    video, canvas, img { width:100%; max-height:520px; background:#111; }
-    button {
-      border:0; border-radius:30px; padding:14px 20px; margin:8px;
-      font-size:16px; font-weight:bold; background:#111; color:white;
-    }
-    .ghost { background:#fffc00; color:#111; }
-    .story { margin:12px; padding:12px; border-radius:20px; background:#eee; }
-    input { padding:12px; width:80%; border-radius:20px; border:1px solid #ccc; }
-  </style>
+  <title>SnapClone Demo</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
 <div class="app">
-  <header>👻 SnapWeb</header>
+  <div id="cameraPage" class="page active">
+    <header>👻 SnapClone</header>
+    <video id="video" autoplay playsinline></video>
+    <canvas id="canvas"></canvas>
 
-  <video id="video" autoplay playsinline></video>
-  <canvas id="canvas" style="display:none;"></canvas>
+    <div class="cameraControls">
+      <button onclick="openPage('chatsPage')">💬</button>
+      <button class="snapBtn" onclick="takeSnap()">📸</button>
+      <button onclick="switchCamera()">🔄</button>
+    </div>
+  </div>
 
-  <br>
-  <button onclick="takeSnap()">📸 Snap</button>
-  <button onclick="switchCamera()" class="ghost">🔄 Flip</button>
+  <div id="previewPage" class="page">
+    <img id="previewImg">
+    <input id="captionInput" placeholder="Add caption...">
+    <h3>Send to:</h3>
+    <div id="friendSendList"></div>
+    <button onclick="postStory()">Post to Story</button>
+    <button onclick="openPage('cameraPage')">Back</button>
+  </div>
 
-  <div id="preview"></div>
+  <div id="chatsPage" class="page">
+    <header>
+      <button onclick="openPage('cameraPage')">📸</button>
+      Chats
+      <button onclick="openPage('storiesPage')">📖</button>
+    </header>
 
-  <input id="caption" placeholder="Add a caption...">
-  <br>
-  <button onclick="postStory()">Post Story</button>
+    <div id="chatList"></div>
 
-  <h2>Stories</h2>
-  <div id="stories"></div>
+    <div class="addFriend">
+      <input id="friendName" placeholder="Add friend name">
+      <button onclick="addFriend()">Add</button>
+    </div>
+  </div>
+
+  <div id="chatRoomPage" class="page">
+    <header>
+      <button onclick="openPage('chatsPage')">←</button>
+      <span id="chatTitle"></span>
+    </header>
+
+    <div id="messages"></div>
+
+    <div class="messageBox">
+      <input id="messageInput" placeholder="Send chat...">
+      <button onclick="sendMessage()">Send</button>
+    </div>
+  </div>
+
+  <div id="storiesPage" class="page">
+    <header>
+      <button onclick="openPage('chatsPage')">←</button>
+      Stories
+    </header>
+    <div id="stories"></div>
+  </div>
 </div>
 
-<script>
-let video = document.getElementById("video");
-let canvas = document.getElementById("canvas");
-let currentImage = "";
-let facingMode = "user";
-
-async function startCamera() {
-  try {
-    let stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: facingMode },
-      audio: false
-    });
-    video.srcObject = stream;
-  } catch (err) {
-    alert("Camera access needed. Use HTTPS / W3Schools Spaces preview.");
-  }
-}
-
-function switchCamera() {
-  facingMode = facingMode === "user" ? "environment" : "user";
-  if (video.srcObject) {
-    video.srcObject.getTracks().forEach(track => track.stop());
-  }
-  startCamera();
-}
-
-function takeSnap() {
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-  let ctx = canvas.getContext("2d");
-  ctx.drawImage(video, 0, 0);
-  currentImage = canvas.toDataURL("image/png");
-
-  document.getElementById("preview").innerHTML =
-    `<h3>Preview</h3><img src="${currentImage}">`;
-}
-
-function postStory() {
-  if (!currentImage) return alert("Take a snap first!");
-
-  let caption = document.getElementById("caption").value;
-  let stories = JSON.parse(localStorage.getItem("stories") || "[]");
-
-  stories.unshift({
-    image: currentImage,
-    caption: caption,
-    time: new Date().toLocaleString()
-  });
-
-  localStorage.setItem("stories", JSON.stringify(stories));
-  document.getElementById("caption").value = "";
-  currentImage = "";
-  document.getElementById("preview").innerHTML = "";
-  loadStories();
-}
-
-function loadStories() {
-  let stories = JSON.parse(localStorage.getItem("stories") || "[]");
-
-  document.getElementById("stories").innerHTML = stories.map((s, i) => `
-    <div class="story">
-      <img src="${s.image}">
-      <h3>${s.caption}</h3>
-      <small>${s.time}</small><br>
-      <button onclick="deleteStory(${i})">Delete</button>
-    </div>
-  `).join("");
-}
-
-function deleteStory(i) {
-  let stories = JSON.parse(localStorage.getItem("stories") || "[]");
-  stories.splice(i, 1);
-  localStorage.setItem("stories", JSON.stringify(stories));
-  loadStories();
-}
-
-startCamera();
-loadStories();
-</script>
+<script src="script.js"></script>
 </body>
 </html>
